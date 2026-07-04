@@ -1,0 +1,35 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+# Wajib diisi di GitHub repo -> Settings -> Secrets and variables -> Actions:
+#   CLOUDFLARE_API_TOKEN   (buat di dash.cloudflare.com/profile/api-tokens, scope: Edit Cloudflare Workers)
+#   CLOUDFLARE_ACCOUNT_ID  (terlihat di sidebar kanan dashboard Cloudflare)
+#
+# MCP_ENDPOINT tidak diisi lewat GitHub Actions -- itu di-set sekali lewat
+# `wrangler secret put MCP_ENDPOINT` dan tersimpan di sisi Cloudflare, bukan di repo.

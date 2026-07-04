@@ -1,0 +1,5 @@
+# Salin file ini menjadi .dev.vars untuk development lokal (wrangler dev).
+# .dev.vars TIDAK ikut ter-commit ke git (lihat .gitignore).
+# Untuk production, gunakan `wrangler secret put MCP_ENDPOINT` atau dashboard Cloudflare.
+
+MCP_ENDPOINT=wss://api.xiaozhi.me/mcp/?token=GANTI_DENGAN_TOKEN_ASLI

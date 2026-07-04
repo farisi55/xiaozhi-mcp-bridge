@@ -1,0 +1,33 @@
+name = "xiaozhi-mcp-bridge"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+# Durable Object menjaga koneksi WebSocket tetap hidup ke XiaoZhi MCP Endpoint.
+[[durable_objects.bindings]]
+name = "MCP_BRIDGE"
+class_name = "McpBridge"
+
+# SQLite storage backend -> tersedia di Workers Free plan, tidak wajib upgrade Paid plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["McpBridge"]
+
+# Cron setiap 1 menit: memastikan Durable Object tetap aktif dan reconnect
+# otomatis kalau koneksi WebSocket ke XiaoZhi terputus.
+[triggers]
+crons = ["*/1 * * * *"]
+
+# -----------------------------------------------------------------------
+# ENV VARIABLE / SECRET
+# -----------------------------------------------------------------------
+# JANGAN taruh token asli di file ini kalau repo akan di-push ke GitHub publik.
+# Isi MCP_ENDPOINT setelah deploy, lewat salah satu cara berikut:
+#
+#   1) CLI (direkomendasikan, tersimpan sebagai encrypted secret):
+#      wrangler secret put MCP_ENDPOINT
+#
+#   2) Dashboard Cloudflare:
+#      Workers & Pages -> pilih project -> Settings -> Variables and Secrets
+#      -> Add -> Type: Secret -> Name: MCP_ENDPOINT -> Value: wss://api.xiaozhi.me/mcp/?token=...
+#
+# Untuk development lokal, isi nilainya di file .dev.vars (lihat .dev.vars.example)
