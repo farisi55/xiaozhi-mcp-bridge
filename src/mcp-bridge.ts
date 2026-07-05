@@ -126,6 +126,10 @@ export class McpBridge implements DurableObject {
       return;
     }
 
+    // Log diagnostik sementara: lihat SETIAP method yang masuk dari XiaoZhi,
+    // termasuk yang tidak ditangani. Hapus/kecilkan setelah debugging selesai.
+    console.log(`[MCP] method masuk: ${msg.method}`, msg.params ?? "");
+
     switch (msg.method) {
       case "initialize":
         this.send({
