@@ -57,6 +57,10 @@ export class McpBridge implements DurableObject {
       JSON.stringify({
         status: this.ws?.readyState === WebSocket.READY_STATE_OPEN ? "connected" : "disconnected",
         tools: TOOL_DEFINITIONS.map((t) => t.name),
+        secrets: {
+          MCP_ENDPOINT: this.env.MCP_ENDPOINT ? "set" : "MISSING",
+          TAVILY_API_KEY: this.env.TAVILY_API_KEY ? "set" : "MISSING",
+        },
       }),
       { headers: { "content-type": "application/json" } }
     );
