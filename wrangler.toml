@@ -31,3 +31,7 @@ crons = ["*/1 * * * *"]
 #      -> Add -> Type: Secret -> Name: MCP_ENDPOINT -> Value: wss://api.xiaozhi.me/mcp/?token=...
 #
 # Untuk development lokal, isi nilainya di file .dev.vars (lihat .dev.vars.example)
+#
+# Secret kedua untuk tool cari_informasi_terkini (Tavily Search API):
+#      wrangler secret put TAVILY_API_KEY
+#      Dapatkan API key gratis di https://app.tavily.com (1000 kredit/bulan, tanpa kartu kredit)

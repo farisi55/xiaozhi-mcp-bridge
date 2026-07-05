@@ -23,40 +23,21 @@ export interface ToolDefinition {
 
 export const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
-    name: "cek_jawaban_angka",
+    name: "cari_informasi_terkini",
     description:
-      "Gunakan tool ini setiap kali anak menjawab pertanyaan kuis tentang angka. " +
-      "Panggil tool ini untuk mengecek apakah jawaban anak benar, jangan menilai sendiri dari ingatan.",
+      "Gunakan tool ini HANYA saat anak bertanya fakta umum atau hal yang butuh informasi terkini yang tidak ada " +
+      "di pengetahuan dasarmu (misalnya 'kenapa langit biru', 'hewan terbesar di dunia', 'apa itu pelangi'). " +
+      "JANGAN gunakan untuk topik sensitif, menakutkan, kekerasan, atau dewasa -- untuk itu tetap arahkan anak " +
+      "bertanya ke Papa Banu atau Mama Rini, jangan panggil tool ini.",
     inputSchema: {
       type: "object",
       properties: {
-        jawaban_anak: {
+        pertanyaan: {
           type: "string",
-          description: "Teks jawaban yang diucapkan anak, misalnya '5' atau 'lima'.",
-        },
-        angka_target: {
-          type: "number",
-          description: "Angka yang seharusnya dijawab oleh anak.",
+          description: "Pertanyaan anak, ditulis ulang dalam bahasa yang jelas dan sederhana.",
         },
       },
-      required: ["jawaban_anak", "angka_target"],
-    },
-  },
-  {
-    name: "catat_ringkasan_sesi",
-    description:
-      "Panggil tool ini di akhir sesi belajar, atau saat terjadi momen penting " +
-      "(anak berhasil hafal sesuatu, menunjukkan emosi tertentu, atau bertanya hal yang perlu diketahui orang tua). " +
-      "Ringkasan ini akan bisa dilihat oleh Papa Banu dan Mama Rini.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        ringkasan: {
-          type: "string",
-          description: "Ringkasan singkat, maksimal sekitar 200 karakter.",
-        },
-      },
-      required: ["ringkasan"],
+      required: ["pertanyaan"],
     },
   },
 ];
@@ -71,37 +52,71 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+export interface ToolContext {
+  tavilyApiKey?: string;
+}
+
 /**
- * Menjalankan satu tool call. `storage` adalah storage bawaan Durable Object
- * (this.state.storage), dipakai untuk tool yang butuh menyimpan data (mis. catat_ringkasan_sesi).
+ * Menjalankan satu tool call. `ctx.tavilyApiKey` dipakai untuk tool yang
+ * memanggil layanan eksternal (mis. cari_informasi_terkini).
  */
 export async function executeTool(
   name: string,
   args: Record<string, unknown>,
-  storage: DurableObjectStorage
+  ctx: ToolContext
 ): Promise<ToolResult> {
   switch (name) {
-    case "cek_jawaban_angka": {
-      const jawabanAnak = String(args.jawaban_anak ?? "").trim();
-      const angkaTarget = Number(args.angka_target);
-      const benar = String(angkaTarget) === jawabanAnak;
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ success: true, benar, target: angkaTarget }),
-          },
-        ],
-      };
-    }
+    case "cari_informasi_terkini": {
+      const pertanyaan = String(args.pertanyaan ?? "").trim();
 
-    case "catat_ringkasan_sesi": {
-      const ringkasan = String(args.ringkasan ?? "").slice(0, 500);
-      const timestamp = new Date().toISOString();
-      await storage.put(`sesi:${timestamp}`, ringkasan);
-      return {
-        content: [{ type: "text", text: JSON.stringify({ success: true, status: "tersimpan" }) }],
-      };
+      if (!ctx.tavilyApiKey) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ success: false, error: "TAVILY_API_KEY belum diset di server" }) }],
+          isError: true,
+        };
+      }
+      if (!pertanyaan) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ success: false, error: "Pertanyaan kosong" }) }],
+          isError: true,
+        };
+      }
+
+      try {
+        const res = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${ctx.tavilyApiKey}`,
+          },
+          body: JSON.stringify({
+            query: pertanyaan,
+            search_depth: "basic",
+            max_results: 3,
+            include_answer: true,
+          }),
+        });
+
+        if (!res.ok) {
+          return {
+            content: [{ type: "text", text: JSON.stringify({ success: false, error: `Tavily error ${res.status}` }) }],
+            isError: true,
+          };
+        }
+
+        const data = (await res.json()) as { answer?: string; results?: Array<{ title: string; url: string }> };
+        const jawaban = data.answer ?? "Tidak ditemukan jawaban singkat untuk pertanyaan ini.";
+        const sumber = (data.results ?? []).slice(0, 2).map((r) => r.title);
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ success: true, jawaban, sumber }) }],
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ success: false, error: String(err) }) }],
+          isError: true,
+        };
+      }
     }
 
     default:

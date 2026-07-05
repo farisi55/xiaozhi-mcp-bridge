@@ -3,3 +3,4 @@
 # Untuk production, gunakan `wrangler secret put MCP_ENDPOINT` atau dashboard Cloudflare.
 
 MCP_ENDPOINT=wss://api.xiaozhi.me/mcp/?token=GANTI_DENGAN_TOKEN_ASLI
+TAVILY_API_KEY=tvly-GANTI_DENGAN_API_KEY_ASLI

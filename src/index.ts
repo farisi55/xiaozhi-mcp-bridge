@@ -12,18 +12,17 @@ export default {
    * HTTP entrypoint. Dipakai untuk:
    *  - GET /        -> status singkat
    *  - GET /status   -> status koneksi + daftar tools terdaftar
-   *  - GET /sessions -> ringkasan sesi belajar yang tercatat (untuk orang tua)
    */
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const stub = getBridgeStub(env);
 
-    if (url.pathname === "/status" || url.pathname === "/sessions" || url.pathname === "/ping") {
+    if (url.pathname === "/status" || url.pathname === "/ping") {
       return stub.fetch(request);
     }
 
     return new Response(
-      "XiaoZhi MCP Bridge aktif. Endpoint: /status, /sessions, /ping",
+      "XiaoZhi MCP Bridge aktif. Endpoint: /status, /ping",
       { status: 200 }
     );
   },

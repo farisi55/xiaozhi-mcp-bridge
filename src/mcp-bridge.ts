@@ -1,9 +1,7 @@
 import { TOOL_DEFINITIONS, executeTool } from "./tools";
+import type { Env } from "./env";
 
-export interface Env {
-  MCP_BRIDGE: DurableObjectNamespace;
-  MCP_ENDPOINT?: string;
-}
+export type { Env };
 
 interface JsonRpcRequest {
   jsonrpc: "2.0";
@@ -53,17 +51,6 @@ export class McpBridge implements DurableObject {
         JSON.stringify({ status: this.ws?.readyState === WebSocket.READY_STATE_OPEN ? "connected" : "disconnected" }),
         { headers: { "content-type": "application/json" } }
       );
-    }
-
-    if (url.pathname === "/sessions") {
-      const entries = await this.state.storage.list<string>({ prefix: "sesi:" });
-      const sessions = Array.from(entries.entries()).map(([key, value]) => ({
-        waktu: key.replace("sesi:", ""),
-        ringkasan: value,
-      }));
-      return new Response(JSON.stringify(sessions, null, 2), {
-        headers: { "content-type": "application/json" },
-      });
     }
 
     return new Response(
@@ -167,7 +154,9 @@ export class McpBridge implements DurableObject {
       case "tools/call": {
         const name = String(msg.params?.name ?? "");
         const args = (msg.params?.arguments as Record<string, unknown>) ?? {};
-        const result = await executeTool(name, args, this.state.storage);
+        const result = await executeTool(name, args, {
+          tavilyApiKey: this.env.TAVILY_API_KEY,
+        });
         this.send({ jsonrpc: "2.0", id: msg.id, result });
         break;
       }
